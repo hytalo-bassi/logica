@@ -155,7 +155,9 @@ def tokenize(s: str):
     open_parens = 0
     tokens = []
     size = len(s)
-    for i in range(0, size):
+    i = 0
+
+    while i < size:
         char = s[i]
         if char == '(':
             open_parens += 1
@@ -169,6 +171,10 @@ def tokenize(s: str):
                     tokens.append(token(i, Operations.AND))
                 elif char == '-' and i < size - 1 and s[i + 1] == '>':
                     tokens.append(token(i, Operations.IMPLIES, end = i + 1))
+                elif char == '<' and i < size - 2 and s[i:i + 3] == '<->':
+                    tokens.append(token(i, Operations.DUAL_IMPLICATION, end = i + 2))
+                    i += 1
+        i += 1
 
     return tokens
 
