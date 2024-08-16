@@ -4,10 +4,11 @@ from rich.table import Table
 
 
 class Operations(Enum):
-    AND = 0
-    OR = 1
-    IMPLIES = 2
-    DUAL_IMPLICATION = 3
+    NOT = 0
+    AND = 1
+    OR = 2
+    IMPLIES = 3
+    DUAL_IMPLICATION = 4
 
 
 def get_operation(char: str):
@@ -119,15 +120,17 @@ class Node(Logic):
             if self.left.get() is not self.right.get():
                 return False
             return True
+        elif self.op == Operations.NOT:
+            return not self.right.get()
 
 
     def to_expr(self):
-        left_expr = self.left.to_expr()
+        left_expr = self.left.to_expr() if self.left is not None else None
         right_expr = self.right.to_expr()
 
-        if isinstance(self.left, Node):
+        if isinstance(self.left, Node) and self.left.op != Operations.NOT:
             left_expr = f"({left_expr})"
-        if isinstance(self.right, Node):
+        if isinstance(self.right, Node) and self.right.op != Operations.NOT:
             right_expr = f"({right_expr})"
         
         middle = ""
@@ -139,6 +142,11 @@ class Node(Logic):
             middle = " → "
         elif self.op == Operations.DUAL_IMPLICATION:
             middle = " ≡ "
+        elif self.op == Operations.NOT:
+            # Operations.NOT is a special type of Node that only have the right side.
+            # That's why the different approach in returning the expr.
+
+            return "¬" + right_expr
 
         return left_expr + middle + right_expr
 
@@ -174,6 +182,8 @@ def tokenize(s: str):
                 elif char == '<' and i < size - 2 and s[i:i + 3] == '<->':
                     tokens.append(token(i, Operations.DUAL_IMPLICATION, end = i + 2))
                     i += 1
+                elif char == '~':
+                    tokens.append(token(i, Operations.NOT))
         i += 1
 
     return tokens
@@ -186,31 +196,22 @@ def token(start: int, score: int, end: int = None):
     return { 'start': start, 'end': end, 'score': score }
 
 
-def get_tokens(s: str):
-    tokens = []
-    i = 0
-    for char in s:
-        if char == '+':
-            tokens.append({ 'i': i, 'score': 2 })
-        elif char == '*':
-            tokens.append({ 'i': i, 'score': 1 })
-        i += 1
-    return tokens
-
-
 def left_and_right(s: str, token):
-    return s[:token['start']], s[token['end'] + 1:]
+    return s[:token['start']], right_side(s, token)
 
+
+def right_side(s: str, token):
+    return s[token['end'] + 1:]
 
 def least_precedence(tokens):
     if len(tokens) == 0:
         return -1
 
-    M = tokens[0]['score'].value
     i_max = 0
     i = 0
 
     while (i < len(tokens)):
+        M = tokens[i_max]['score'].value
         token_scr = tokens[i]['score'].value
         
         if token_scr > M:
@@ -257,14 +258,21 @@ def _parser(expr: str, symboldict: dict, bits):
         
         return v
 
-    left_expr, right_expr = left_and_right(expr, tokens[last_token])
-    
-    left_expr = rm_outer_parenthesis(left_expr)
-    right_expr = rm_outer_parenthesis(right_expr)
+    left_node = None
+    right_node = None
+    if tokens[last_token]['score'] != Operations.NOT:
+        left_expr, right_expr = left_and_right(expr, tokens[last_token])
+        
+        left_expr = rm_outer_parenthesis(left_expr)
+        right_expr = rm_outer_parenthesis(right_expr)
 
-    left_node = _parser(left_expr, symboldict, bits)
-    right_node = _parser(right_expr, symboldict, bits)
-    
+        left_node = _parser(left_expr, symboldict, bits)
+        right_node = _parser(right_expr, symboldict, bits)
+    else:
+        right_expr = right_side(expr, tokens[last_token])
+        right_expr = rm_outer_parenthesis(right_expr)
+
+        right_node = _parser(right_expr, symboldict, bits)
     n = Node(left = left_node, right = right_node, op = tokens[last_token]['score'])
     return n
 
