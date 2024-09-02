@@ -310,23 +310,26 @@ def optimizer(root_node: Node):
 
 
 def main():
-    inp = input()
-    n, s, bits = parser(inp)
-    table = []
-    tab_rich = Table()
-    i = 0
-    table = []
-    for var in s:
-        tab_rich.add_column(var, justify="center")
-        table.append(s[var])
+    while True:
+        inp = input()
+        if inp == '':
+            break
+        n, s, bits = parser(inp)
+        table = []
+        tab_rich = Table()
+        i = 0
+        table = []
+        for var in s:
+            tab_rich.add_column(var, justify="center")
+            table.append(s[var])
 
-    tab_rich.add_column(n.to_expr(), justify="center")
-    for i in range(0, 2 ** len(s)):
-        tab_rich.add_row(*get_truth_row(table), str(n.get())[0])
-        bits + 1
+        tab_rich.add_column(n.to_expr(), justify="center")
+        for i in range(0, 2 ** len(s)):
+            tab_rich.add_row(*get_truth_row(table), str(n.get())[0])
+            bits + 1
 
-    console = Console()
-    console.print(tab_rich)
+        console = Console()
+        console.print(tab_rich)
 
 
 def optimizer_test():
