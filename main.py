@@ -3,6 +3,10 @@ from rich.console import Console
 from rich.table import Table
 
 
+class Laws(Enum):
+    DOMINANCE = 0
+
+
 class Operations(Enum):
     NOT = 0
     AND = 1
@@ -285,9 +289,29 @@ def parser(expr: str):
     return [_parser(expr, symboldict, bits), symboldict, bits]
 
 
+def _optimizer(root_node: Node, used_laws: list = []):
+    new_tree = root_node
+    if root_node.op == Operations.OR:
+        if root_node.right == Truth or root_node.left == Truth:
+            if root_node.left == Truth:
+                new_tree = root_node.right
+            else:
+                new_tree = root_node.left
+            used_laws.append(Laws.DOMINANCE)
+            return new_tree
+    
+    return new_tree
+
+
+def optimizer(root_node: Node):
+    used_laws = []
+    new_tree = _optimizer(root_node, used_laws)
+    return new_tree, used_laws
+
+
 def main():
-    s = input()
-    n, s, bits = parser(s)
+    inp = input()
+    n, s, bits = parser(inp)
     table = []
     tab_rich = Table()
     i = 0
@@ -305,4 +329,10 @@ def main():
     console.print(tab_rich)
 
 
+def optimizer_test():
+    n, s, bits = parser(input())
+    print(optimizer(n).to_expr())
+
+
+#optimizer_test()
 main()
